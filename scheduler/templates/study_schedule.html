@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+
+<head lang="ko">
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>공부 계획표</title>
+  <link rel="stylesheet" href="{{ url_for('static',filename='jquery-ui/jquery-ui.min.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static',filename='jquery-ui/jquery-ui.structure.min.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static',filename='jquery-ui/jquery-ui.theme.min.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static',filename='fullcalendar/fullcalendar.css') }}" />
+  <!-- 파비콘-->
+  <link rel="icon" type="image/x-icon" href="../static/assets/img/favicon.ico" />
+  <!-- 폰트 아이콘 -->
+  <script src="https://use.fontawesome.com/releases/v5.13.0/js/all.js" crossorigin="anonymous"></script>
+  <!-- 구글 폰트-->
+  <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700" rel="stylesheet" type="text/css" />
+  <link href="https://fonts.googleapis.com/css?family=Lato:400,700,400italic,700italic" rel="stylesheet"
+    type="text/css" />
+  <!-- CSS 코어 (부트스트랩 포함)-->
+  <link href="../static/css/styles.css" rel="stylesheet" />
+  <style>
+    .event_selected {
+      background-color: gray;
+
+    }
+
+    body {
+      margin: 40px 10px;
+      padding: 0;
+      font-family: "Lucida Grande", Helvetica, Arial, Verdana, sans-serif;
+      font-size: 14px;
+    }
+
+    #calendar {
+      margin: 0 auto;
+
+    }
+    .margin-top{
+    margin-top: 10px !important;
+    }
+  </style>
+
+  <!-- Bootstrap core JS-->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.bundle.min.js"></script>
+  <!-- Third party plugin JS-->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.4.1/jquery.easing.min.js"></script>
+  <!-- Core theme JS-->
+  <script src="../static/js/scripts.js"></script>
+  <script src="{{ url_for('static',filename='jquery/jquery.min.js') }}"></script>
+  <script src="{{ url_for('static',filename='moment/moment.min.js') }}"></script>
+  <script src="{{ url_for('static',filename='jquery-ui/jquery-ui.min.js') }}"></script>
+  <script src="{{ url_for('static',filename='moment/moment.min.js') }}"></script>
+  <script src="{{url_for('static',filename='fullcalendar/fullcalendar.js')}}"></script>
+  <script src="{{url_for('static',filename='fullcalendar/locale/ko.js')}}"></script>
+  <script>
+    $(document).ready(function () {
+      $("#calendar").fullCalendar({
+        locale: 'ko',
+        events: '{{url_for('scheduler')}}',
+        dayClick: function (date) {
+          $('#start, #end').datepicker('setDate', date._d);
+          $('.event_selected').removeClass('event_selected');
+          $(this).addClass('event_selected');
+        },
+        eventClick: function (event) {
+          $('#id').val(event.id);
+          $('#title').val(event.title);
+          $('#start').val(event.start.toISOString());
+          $('#end').val(event.end == null ? event.start.toISOString() : event.end.toISOString());
+          $('.event_selected').removeClass('event_selected');
+          $(this).addClass('event_selected');
+        },
+        eventRender: function (event, element) {
+          element.css("font-size", "15px");
+          element.css("padding", "3px");
+          element.css("color", "white");
+        },
+        eventBorderColor: 'white'
+
+      });
+
+      $('#start, #end').datepicker({
+        dateFormat: "yy-mm-dd",
+        onSelect: function (dateText, inst) {
+          if (this.id == 'start') {
+            $('#start').datepicker("getDate").getTime() > $('#end').datepicker("getDate").getTime();
+            $('#end').datepicker("setDate", dateText);
+          }
+        }
+      });
+
+      $('#start, #end').datepicker('setDate', new Date());
+
+      $('#insertBtn').click(function () {
+        $.ajax({
+          url: '{{url_for('scheduler')}}',
+          type: 'post',
+          data: $('#schedulerForm').serialize(),
+          success: function (res) {
+            let data = JSON.parse(res);
+            if (data.rows > 0) {
+              $("#calendar").fullCalendar('refetchEvents')
+            }
+            else {
+              alert('실패');
+            }
+          }
+        });
+      });
+
+      $('#updateBtn').click(function () {
+        $.ajax({
+          url: '{{url_for('scheduler')}}',
+          type: 'put',
+          data: $('#schedulerForm').serialize(),
+          success: function (res) {
+            let data = JSON.parse(res);
+            if (data.rows > 0) {
+              $("#calendar").fullCalendar('refetchEvents')
+            }
+            else {
+              alert('실패');
+            }
+          }
+        });
+      });
+
+      $('#deleteBtn').click(function () {
+        if (confirm($('#title').val() + " 일정을 삭제 하시겠습니까?")) {
+          $.ajax({
+            url: '{{url_for('scheduler')}}',
+            type: 'delete',
+            data: { id: $('#id').val() },
+            success: function (res) {
+              let data = JSON.parse(res);
+              if (data.rows > 0) {
+                $("#calendar").fullCalendar('refetchEvents')
+              }
+              else {
+                alert('실패');
+              }
+            }
+          });
+        }
+      });
+    });
+    calendar.setOption('locale', 'ko');
+  </script>
+</head>
+
+<body>
+  <nav class="navbar navbar-expand-lg bg-secondary text-uppercase fixed-top" id="mainNav">
+    <button class="btn btn-primary navbar-brand js-scroll-trigger" onclick="location.href='/user'">뒤로 가기</button>
+
+
+    <div class="container">
+      <div class="row">
+        <div class="col-md-7"></div>
+        <div class="col-md-2">
+          <form name="schedulerForm" id="schedulerForm" style="color: white;">
+            <span>시작 날짜 <input type="text" name="start" id="start" readonly="readonly"></span>
+            <span>종료 날짜 <input type="text" name="end" id="end" readonly="readonly"></span>
+            <span>제목 <input type="text" name="title" id="title"></span>
+            <input type="hidden" name="id" id="id">
+            <input type="hidden" name="allDay" id="allDay" checked="checked" value="Y">
+
+        </div>
+        <div class="col-md-1"></div>
+        <div class="col-md-2">
+          <button class="btn btn-success margin-top" type="button" id="insertBtn">스케줄 등록</button>
+          <button class="btn btn-warning margin-top" type="button" id="updateBtn">스케줄 수정</button>
+          <button class="btn btn-danger margin-top" type="button" id="deleteBtn">스케줄 삭제</button>
+          </form>
+        </div>
+      </div>
+    </div>
+    </div>
+
+  </nav>
+  <br /><br /><br /><br /><br /><br /><br /><br />
+
+  <div id="calendar"></div>
+
+
+</body>
+
+</html>
